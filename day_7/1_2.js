@@ -1,6 +1,7 @@
 // This is very dirty.
 
 const assert = require('assert');
+const IntCodeComputer = require('../intCodeComputer');
 const puzzleInput = require('./input');
 const testInputs = [
     {
@@ -36,19 +37,17 @@ function solve(input) {
 
     const res = phaseSettingsPermutations.reduce((maxOutput, phaseSettings) => {
         const endOutput = phaseSettings.reduce((output, phase) => {
-            const intCode = toIntCode(input);
+            const computer = new IntCodeComputer(input);
             let firstOpCode3Processed = false;
-            let pointer = 0;
             let newOutput = output;
 
-            while (intCode[pointer] !== 99) {
-                const opCode = getOpCode(intCode[pointer]);
+            while (!computer.mustHalt) {
                 const opCode3Input = firstOpCode3Processed ? output : phase;
 
-                if (opCode === 3)
+                if (computer.opCode === 3)
                     firstOpCode3Processed = true;
 
-                [pointer, newOutput] = executeInstruction(intCode, pointer, opCode3Input);
+                newOutput = computer.executeInstruction(opCode3Input);
             }
 
             return newOutput;
@@ -64,27 +63,23 @@ function solve2(input) {
     const phaseSettingsPermutations = Array.from(permute([5, 6, 7, 8, 9]));
 
     const res = phaseSettingsPermutations.reduce((maxOutput, phaseSettings) => {
-        let currentPhaseIndex = 0, phaseIntCode, phasePointer, phaseOutput, isEnd = false;
+        let currentPhaseIndex = 0, phaseOutput, isEnd = false;
         phaseSettings = phaseSettings.map(phase => ({
             phase,
-            pointer: 0,
+            computer: new IntCodeComputer(input),
             input: 0,
-            intCode: toIntCode(input),
             phaseUsedAsInput: false
         }));
 
         while (!isEnd) {
             const currentPhase = phaseSettings[currentPhaseIndex];
-            [phaseIntCode, phasePointer, phaseOutput, isEnd] =
-                executeUntilOutput(currentPhase.intCode, currentPhase.pointer, currentPhase.input, currentPhase.phaseUsedAsInput ? null : currentPhase.phase);
+            phaseOutput = executeUntilOutput(currentPhase.computer, currentPhase.input, currentPhase.phaseUsedAsInput ? null : currentPhase.phase);
 
             currentPhase.phaseUsedAsInput = true;
-            currentPhase.intCode = phaseIntCode;
-            currentPhase.pointer = phasePointer;
 
             currentPhaseIndex = getNextPhaseIndex(currentPhaseIndex);
             phaseOutput = phaseOutput || currentPhase.input;
-            isEnd = isEnd && currentPhaseIndex === 0;
+            isEnd = currentPhase.computer.mustHalt && currentPhaseIndex === 0;
             phaseSettings[currentPhaseIndex].input = phaseOutput;
         }
 
@@ -94,80 +89,25 @@ function solve2(input) {
     return res;
 }
 
-function executeUntilOutput(intCode, pointer, input, phase) {
+function executeUntilOutput(computer, input, phase) {
     let output = undefined;
     let firstOpCode3Processed = false;
 
-    while (output == null && intCode[pointer] !== 99) {
-        let newOutput;
-        const opCode = getOpCode(intCode[pointer]);
+    while (output == null && !computer.mustHalt) {
         const opCode3Input = firstOpCode3Processed ? input : (phase || input);
 
-        if (opCode === 3)
+        if (computer.opCode === 3)
             firstOpCode3Processed = true;
 
-        [pointer, newOutput] = executeInstruction(intCode, pointer, opCode3Input);
+        const newOutput = computer.executeInstruction(opCode3Input);
         output = newOutput || output;
     }
 
-    return [intCode, pointer, output, intCode[pointer] === 99];
+    return output;
 }
 
 function getNextPhaseIndex(currentIndex) {
     return currentIndex === 4 ? 0 : currentIndex + 1;
-}
-
-function executeInstruction(intCode, pointer, opCode3Input) {
-    const opCode = getOpCode(intCode[pointer]);
-    const rawInstruction = intCode[pointer].toString();
-
-    const [param1, param2, targetAddr] = intCode.slice(pointer + 1, pointer + 4);
-    const param1Mode = +rawInstruction[rawInstruction.length - 3] || 0;
-    const param2Mode = +rawInstruction[rawInstruction.length - 4] || 0;
-    const param1Val = !param1Mode ? intCode[param1] : param1;
-    const param2Val = !param2Mode ? intCode[param2] : param2;
-
-    switch (opCode) {
-        case 1:
-        case 2:
-            intCode[targetAddr] = addOrMultiply(opCode, param1Val, param2Val);
-            return [pointer + 4];
-        case 3:
-            intCode[intCode[pointer + 1]] = opCode3Input;
-            return [pointer + 2];
-        case 4:
-            return [pointer + 2, param1Val];
-        case 5:
-            return [param1Val !== 0 ? param2Val : (pointer + 3)];
-        case 6:
-            return [param1Val === 0 ? param2Val : (pointer + 3)];
-        case 7:
-            intCode[targetAddr] = param1Val < param2Val ? 1 : 0;
-            return [pointer + 4];
-        case 8:
-            intCode[targetAddr] = param1Val === param2Val ? 1 : 0;
-            return [pointer + 4];
-        default:
-            throw `Unsupported opCode: ${opCode}`;
-    }
-}
-
-function addOrMultiply(opCode, param1, param2) {
-    return opCode === 1
-        ? param1 + param2
-        : param1 * param2;
-}
-
-function getOpCode(instruction) {
-    const instrString = instruction.toString();
-
-    return instrString.length < 3
-        ? instruction
-        : +instrString[instrString.length - 1];
-}
-
-function toIntCode(input) {
-    return input.split(',').map(x => +x);
 }
 
 function* permute(a, n = a.length) {
