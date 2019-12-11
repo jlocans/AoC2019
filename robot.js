@@ -1,11 +1,11 @@
 class Robot {
-    constructor(gridSize) {
+    constructor(gridSize, initialColor) {
         this.paintedPanels = new Set();
         this.grid = initGrid(gridSize);
         this.x = Math.floor(gridSize / 2);
         this.y = Math.floor(gridSize / 2);
         this.directionAngle = 90;
-        this.color = 1;
+        this.color = initialColor;
         this.waitingColor = true;
 
         this.processInput = function (input) {

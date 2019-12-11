@@ -2,11 +2,12 @@ const puzzleInput = require('./input');
 const IntCodeComputer = require('../intCodeComputer');
 const Robot = require('../robot');
 
-console.log(solve(puzzleInput));
+console.log(solve(puzzleInput, 0));
+console.log(solve(puzzleInput, 1));
 
-function solve(input) {
+function solve(input, initialColor) {
     const computer = new IntCodeComputer(input);
-    const robot = new Robot(getEstimatedGridSize(input));
+    const robot = new Robot(getEstimatedGridSize(input), initialColor);
 
     while (!computer.mustHalt) {
         const output = computer.executeInstruction(robot.color);
