@@ -47,7 +47,7 @@ class Robot {
     }
 
     get color() {
-        return this.grid[this.x][this.y];
+        return this.grid[this.y][this.x];
     }
 
     set color(color) {
@@ -55,8 +55,7 @@ class Robot {
             this.paintedPanels.add(`${this.x},${this.y}`);
         }
 
-        // console.log(`Changing color from ${this.color} to ${color} at ${this.x},${this.y}`);
-        this.grid[this.x][this.y] = color;
+        this.grid[this.y][this.x] = color;
         this.waitingColor = false;
     }
 }
