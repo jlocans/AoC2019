@@ -1,6 +1,5 @@
 class Robot {
     constructor(gridSize) {
-        this.movesCount = 0;
         this.paintedPanels = new Set();
         this.grid = initGrid(gridSize);
         this.x = Math.floor(gridSize / 2);
@@ -8,11 +7,6 @@ class Robot {
         this.directionAngle = 90;
         this.color = 1;
         this.waitingColor = true;
-
-        console.log('Initiating robot...');
-        console.log('gridSize', gridSize);
-        console.log('x', this.x);
-        console.log('y', this.y);
 
         this.processInput = function (input) {
             if (this.waitingColor) {
